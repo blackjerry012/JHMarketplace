@@ -51,7 +51,7 @@ export function MarketplaceApp() {
 
   useEffect(() => {
     loadListings();
-  }, []);
+  }, [isAdmin]);
 
   async function loadListings() {
     if (!supabase) {
@@ -60,11 +60,16 @@ export function MarketplaceApp() {
     }
 
     setLoading(true);
-    const { data, error } = await supabase
+    let query = supabase
       .from("listings")
       .select("*")
-      .eq("status", "active")
       .order("created_at", { ascending: false });
+
+    if (!isAdmin) {
+      query = query.eq("status", "active");
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       setNotice(error.message);
@@ -105,14 +110,22 @@ export function MarketplaceApp() {
     await loadListings();
   }
 
-  async function updateListingStatus(listing: Listing, status: "sold" | "hidden") {
+  async function updateListingStatus(listing: Listing, status: "active" | "sold" | "hidden") {
     if (!supabase || !user) return;
 
     const canMarkSold = listing.user_id === user.id || isAdmin;
     const canHide = isAdmin;
-    if ((status === "sold" && !canMarkSold) || (status === "hidden" && !canHide)) return;
+    const canRestore = isAdmin;
+    if (
+      (status === "sold" && !canMarkSold) ||
+      (status === "hidden" && !canHide) ||
+      (status === "active" && !canRestore)
+    ) {
+      return;
+    }
 
-    const actionText = status === "sold" ? "標記為已售出" : "管理員隱藏";
+    const actionText =
+      status === "sold" ? "標記為已售出" : status === "hidden" ? "管理員隱藏" : "重新上架";
     const confirmed = window.confirm(`確定要將「${listing.title}」${actionText}嗎？`);
     if (!confirmed) return;
 
@@ -279,6 +292,9 @@ export function MarketplaceApp() {
                 )}
                 <span className="product-badge">{categoryLabels[listing.category]}</span>
                 <span className="condition-badge">{listing.condition_label}</span>
+                {isAdmin && listing.status !== "active" ? (
+                  <span className={`status-badge status-${listing.status}`}>{statusLabel(listing.status)}</span>
+                ) : null}
               </div>
               <div className="product-info">
                 <span className="product-meta">
@@ -375,6 +391,12 @@ export function MarketplaceApp() {
                   <dt>使用狀況</dt>
                   <dd>{selectedListing.condition_label}</dd>
                 </div>
+                {isAdmin ? (
+                  <div>
+                    <dt>刊登狀態</dt>
+                    <dd>{statusLabel(selectedListing.status)}</dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt>Discord</dt>
                   <dd>{selectedListing.discord_id || "未提供"}</dd>
@@ -399,6 +421,11 @@ export function MarketplaceApp() {
                     管理員隱藏
                   </button>
                 ) : null}
+                {isAdmin && selectedListing.status !== "active" ? (
+                  <button className="secondary-link" type="button" onClick={() => updateListingStatus(selectedListing, "active")}>
+                    重新上架
+                  </button>
+                ) : null}
                 {user?.id === selectedListing.user_id || isAdmin ? (
                   <button className="danger-button" type="button" onClick={() => deleteListing(selectedListing)}>
                     {user?.id === selectedListing.user_id ? "刪除我的刊登" : "管理員刪除"}
@@ -418,4 +445,12 @@ function formatDate(value: string) {
     month: "2-digit",
     day: "2-digit"
   }).format(new Date(value));
+}
+
+function statusLabel(status: Listing["status"]) {
+  return {
+    active: "刊登中",
+    sold: "已售出",
+    hidden: "已隱藏"
+  }[status];
 }

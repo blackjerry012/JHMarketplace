@@ -67,6 +67,19 @@ on public.listings
 for select
 using (status = 'active');
 
+drop policy if exists "Admins can read any listing" on public.listings;
+create policy "Admins can read any listing"
+on public.listings
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.admins
+    where admins.email = lower(auth.jwt() ->> 'email')
+  )
+);
+
 drop policy if exists "Users can insert their own listings" on public.listings;
 create policy "Users can insert their own listings"
 on public.listings
