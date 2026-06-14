@@ -4,6 +4,10 @@ import type { User } from "@supabase/supabase-js";
 import { categories, conditionOptions } from "@/lib/categories";
 import { supabase } from "@/lib/supabase";
 
+const maxImageSizeMb = 3;
+const maxImageSizeBytes = maxImageSizeMb * 1024 * 1024;
+const listingInviteCode = process.env.NEXT_PUBLIC_LISTING_INVITE_CODE;
+
 type ListingFormProps = {
   user: User | null;
   onCreated: () => void;
@@ -23,11 +27,17 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
     const conditionScore = Number(formData.get("condition_score"));
     const title = String(formData.get("title") || "").trim();
     const description = String(formData.get("description") || "").trim();
+    const inviteCode = String(formData.get("invite_code") || "").trim();
     const conditionLabel =
       conditionOptions.find((option) => Number(option.value) === conditionScore)?.label ||
       "未標示";
     const imageFile = formData.get("image_file");
     let imageUrl = String(formData.get("image_url") || "").trim();
+
+    if (listingInviteCode && inviteCode !== listingInviteCode) {
+      window.alert("邀請碼不正確，請向群組管理員確認。");
+      return;
+    }
 
     if (title.length < 2 || title.length > 120) {
       window.alert("商品名稱需要 2 到 120 個字。");
@@ -40,6 +50,16 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
     }
 
     if (imageFile instanceof File && imageFile.size > 0) {
+      if (!imageFile.type.startsWith("image/")) {
+        window.alert("只能上傳圖片檔。");
+        return;
+      }
+
+      if (imageFile.size > maxImageSizeBytes) {
+        window.alert(`圖片不能超過 ${maxImageSizeMb}MB，請先壓縮後再上傳。`);
+        return;
+      }
+
       const extension = imageFile.name.split(".").pop() || "jpg";
       const path = `${user.id}/${Date.now()}.${extension}`;
       const upload = await supabase.storage.from("listing-photos").upload(path, imageFile, {
@@ -80,6 +100,15 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
 
   return (
     <form className="listing-form" onSubmit={handleSubmit}>
+      <label>
+        <span>刊登邀請碼</span>
+        <input
+          name="invite_code"
+          required={Boolean(listingInviteCode)}
+          placeholder="向 DC 群管理員索取"
+        />
+      </label>
+
       <label>
         <span>商品名稱</span>
         <input name="title" required minLength={2} maxLength={120} placeholder="例如：小鱷魚70 深綠色套件" />
@@ -132,7 +161,7 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
       </label>
 
       <label>
-        <span>上傳照片</span>
+        <span>上傳照片，最多 {maxImageSizeMb}MB</span>
         <input name="image_file" type="file" accept="image/*" />
       </label>
 
