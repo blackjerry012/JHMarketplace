@@ -2,6 +2,7 @@ export const categories = [
   { value: "keyboard", label: "鍵盤" },
   { value: "keycap", label: "鍵帽" },
   { value: "stabilizer", label: "衛星軸" },
+  { value: "switch", label: "軸體" },
   { value: "mouse", label: "滑鼠" },
   { value: "headphone", label: "耳機" },
   { value: "other", label: "其他" }
@@ -11,6 +12,7 @@ export const categoryLabels = {
   keyboard: "鍵盤",
   keycap: "鍵帽",
   stabilizer: "衛星軸",
+  switch: "軸體",
   mouse: "滑鼠",
   headphone: "耳機",
   other: "其他"

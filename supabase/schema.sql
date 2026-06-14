@@ -4,7 +4,7 @@ create table if not exists public.listings (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   title text not null check (char_length(title) between 2 and 120),
-  category text not null check (category in ('keyboard', 'keycap', 'stabilizer', 'mouse', 'headphone', 'other')),
+  category text not null check (category in ('keyboard', 'keycap', 'stabilizer', 'switch', 'mouse', 'headphone', 'other')),
   price integer not null check (price >= 0),
   condition_score integer not null check (condition_score in (95, 85, 70, 50)),
   condition_label text not null,
@@ -17,6 +17,13 @@ create table if not exists public.listings (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.listings
+drop constraint if exists listings_category_check;
+
+alter table public.listings
+add constraint listings_category_check
+check (category in ('keyboard', 'keycap', 'stabilizer', 'switch', 'mouse', 'headphone', 'other'));
 
 create table if not exists public.admins (
   email text primary key,
