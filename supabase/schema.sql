@@ -17,6 +17,12 @@ create table if not exists public.listings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.admins (
+  email text primary key,
+  created_at timestamptz not null default now(),
+  check (email = lower(email))
+);
+
 create index if not exists listings_status_created_at_idx
   on public.listings (status, created_at desc);
 
@@ -26,6 +32,7 @@ create index if not exists listings_category_idx
 grant usage on schema public to anon, authenticated;
 grant select on public.listings to anon, authenticated;
 grant insert, update, delete on public.listings to authenticated;
+grant select on public.admins to authenticated;
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -45,6 +52,14 @@ for each row
 execute function public.set_updated_at();
 
 alter table public.listings enable row level security;
+alter table public.admins enable row level security;
+
+drop policy if exists "Admins can read their own admin row" on public.admins;
+create policy "Admins can read their own admin row"
+on public.admins
+for select
+to authenticated
+using (email = lower(auth.jwt() ->> 'email'));
 
 drop policy if exists "Anyone can read active listings" on public.listings;
 create policy "Anyone can read active listings"
@@ -73,6 +88,19 @@ on public.listings
 for delete
 to authenticated
 using (auth.uid() = user_id);
+
+drop policy if exists "Admins can delete any listing" on public.listings;
+create policy "Admins can delete any listing"
+on public.listings
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.admins
+    where admins.email = lower(auth.jwt() ->> 'email')
+  )
+);
 
 insert into storage.buckets (id, name, public)
 values ('listing-photos', 'listing-photos', true)

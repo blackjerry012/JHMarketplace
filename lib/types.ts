@@ -16,3 +16,8 @@ export type Listing = {
   created_at: string;
   updated_at: string;
 };
+
+export type Admin = {
+  email: string;
+  created_at: string;
+};

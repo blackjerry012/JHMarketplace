@@ -21,6 +21,7 @@ export function MarketplaceApp() {
   const [user, setUser] = useState<User | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [query, setQuery] = useState("");
@@ -33,12 +34,16 @@ export function MarketplaceApp() {
       return;
     }
 
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user);
+      checkAdminStatus(data.user);
+    });
 
     const {
       data: { subscription }
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      checkAdminStatus(session?.user ?? null);
     });
 
     return () => subscription.unsubscribe();
@@ -70,8 +75,23 @@ export function MarketplaceApp() {
     setLoading(false);
   }
 
+  async function checkAdminStatus(currentUser: User | null) {
+    if (!supabase || !currentUser?.email) {
+      setIsAdmin(false);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("admins")
+      .select("email")
+      .eq("email", currentUser.email.toLowerCase())
+      .maybeSingle();
+
+    setIsAdmin(Boolean(data && !error));
+  }
+
   async function deleteListing(listing: Listing) {
-    if (!supabase || !user || listing.user_id !== user.id) return;
+    if (!supabase || !user || (listing.user_id !== user.id && !isAdmin)) return;
     const confirmed = window.confirm(`確定要刪除「${listing.title}」嗎？`);
     if (!confirmed) return;
 
@@ -343,9 +363,9 @@ export function MarketplaceApp() {
                 <a className="secondary-link" href="https://discord.com/" target="_blank" rel="noopener noreferrer">
                   去 Discord 聯絡
                 </a>
-                {user?.id === selectedListing.user_id ? (
+                {user?.id === selectedListing.user_id || isAdmin ? (
                   <button className="danger-button" type="button" onClick={() => deleteListing(selectedListing)}>
-                    刪除我的刊登
+                    {user?.id === selectedListing.user_id ? "刪除我的刊登" : "管理員刪除"}
                   </button>
                 ) : null}
               </div>
