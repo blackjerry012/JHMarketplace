@@ -384,13 +384,14 @@ textarea {
   place-items: center;
   overflow: hidden;
   border-bottom: 1px solid var(--line);
-  background: #e8e3d8;
+  background: #f1eee7;
 }
 
 .listing-photo {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  width: calc(100% - 28px);
+  height: calc(100% - 28px);
+  object-fit: contain;
+  object-position: center;
 }
 
 .product-illustration {
@@ -678,7 +679,12 @@ textarea {
   min-height: 520px;
   place-items: center;
   overflow: hidden;
-  background: #e8e3d8;
+  background: #f1eee7;
+}
+
+.dialog-media .listing-photo {
+  width: calc(100% - 40px);
+  height: calc(100% - 40px);
 }
 
 .dialog-media .product-illustration {

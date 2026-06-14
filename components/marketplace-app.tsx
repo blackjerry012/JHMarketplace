@@ -434,9 +434,6 @@ export function MarketplaceApp() {
                     前往賣貨便
                   </button>
                 ) : null}
-                <a className="secondary-link" href="https://discord.com/" target="_blank" rel="noopener noreferrer">
-                  去 Discord 聯絡
-                </a>
                 {user?.id === selectedListing.user_id || isAdmin ? (
                   <button className="secondary-link" type="button" onClick={() => updateListingStatus(selectedListing, "sold")}>
                     標記已售出
