@@ -280,21 +280,21 @@ export function MarketplaceApp() {
 
         <section className="guide-section" id="guide">
           <div>
-            <p className="eyebrow">LAUNCH GUIDE</p>
-            <h2>正式上線流程</h2>
+            <p className="eyebrow">HOW TO USE</p>
+            <h2>網站使用方式</h2>
           </div>
           <div className="guide-grid">
             <article>
-              <strong>1. Supabase</strong>
-              <p>建立專案，跑 `supabase/schema.sql`，取得 URL 和 anon key。</p>
+              <strong>1. 逛二手商品</strong>
+              <p>可以用分類、搜尋和排序找到鍵盤、鍵帽、衛星軸或其他周邊，點「查看詳情」看完整狀況。</p>
             </article>
             <article>
-              <strong>2. GitHub</strong>
-              <p>把這個 Next.js 專案推到 `blackjerry012/JHMarketplace`。</p>
+              <strong>2. 登入後刊登</strong>
+              <p>輸入 Email 收登入連結，再填商品照片、價格、使用狀況、DC ID、賣貨便連結和刊登邀請碼。</p>
             </article>
             <article>
-              <strong>3. Vercel</strong>
-              <p>匯入 GitHub repo，填入環境變數，部署後就能給朋友使用。</p>
+              <strong>3. 自行聯絡交易</strong>
+              <p>這裡只提供刊登與展示，買賣雙方請透過 Discord 或賣貨便自行確認商品細節與付款方式。</p>
             </article>
           </div>
         </section>
