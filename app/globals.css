@@ -573,6 +573,31 @@ textarea {
   background: #1e1e1e;
 }
 
+.form-notice {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid rgba(200, 255, 61, 0.5);
+  background: rgba(200, 255, 61, 0.08);
+  color: #f2f2e8;
+}
+
+.form-notice strong {
+  color: var(--accent);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.form-actions .submit-button,
+.form-actions .ghost-button {
+  flex: 1;
+  min-width: 180px;
+}
+
 .auth-card input,
 .listing-form input,
 .listing-form select,

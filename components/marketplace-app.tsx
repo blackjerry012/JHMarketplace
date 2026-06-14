@@ -23,6 +23,7 @@ export function MarketplaceApp() {
   const [user, setUser] = useState<User | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+  const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
@@ -109,6 +110,19 @@ export function MarketplaceApp() {
     }
 
     setSelectedListing(null);
+    await loadListings();
+  }
+
+  function startEditing(listing: Listing) {
+    setEditingListing(listing);
+    setSelectedListing(null);
+    window.setTimeout(() => {
+      document.querySelector("#sell")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 0);
+  }
+
+  async function handleListingSaved() {
+    setEditingListing(null);
     await loadListings();
   }
 
@@ -359,7 +373,12 @@ export function MarketplaceApp() {
             <AuthPanel user={user} onAuthChange={loadListings} />
           </div>
 
-          <ListingForm user={user} onCreated={loadListings} />
+          <ListingForm
+            editingListing={editingListing}
+            user={user}
+            onCancelEdit={() => setEditingListing(null)}
+            onSaved={handleListingSaved}
+          />
         </section>
 
         <section className="guide-section" id="guide">
@@ -432,6 +451,11 @@ export function MarketplaceApp() {
                 {selectedListing.checkout_url ? (
                   <button className="primary-link" type="button" onClick={() => openExternalLink(selectedListing.checkout_url!)}>
                     前往賣貨便
+                  </button>
+                ) : null}
+                {user?.id === selectedListing.user_id || isAdmin ? (
+                  <button className="secondary-link" type="button" onClick={() => startEditing(selectedListing)}>
+                    編輯刊登
                   </button>
                 ) : null}
                 {user?.id === selectedListing.user_id || isAdmin ? (

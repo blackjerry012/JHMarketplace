@@ -10,7 +10,10 @@ create table if not exists public.listings (
   condition_label text not null,
   description text not null check (char_length(description) between 5 and 2000),
   discord_id text,
-  checkout_url text,
+  checkout_url text check (
+    checkout_url is null
+    or lower(checkout_url) like 'https://myship.7-11.com.tw/%'
+  ),
   image_url text,
   status text not null default 'active' check (status in ('active', 'sold', 'hidden', 'expired')),
   expires_at timestamptz not null default (now() + interval '60 days'),
@@ -24,6 +27,21 @@ drop constraint if exists listings_category_check;
 alter table public.listings
 add constraint listings_category_check
 check (category in ('keyboard', 'keycap', 'stabilizer', 'switch', 'mouse', 'headphone', 'other'));
+
+update public.listings
+set checkout_url = null
+where checkout_url is not null
+  and lower(checkout_url) not like 'https://myship.7-11.com.tw/%';
+
+alter table public.listings
+drop constraint if exists listings_checkout_url_check;
+
+alter table public.listings
+add constraint listings_checkout_url_check
+check (
+  checkout_url is null
+  or lower(checkout_url) like 'https://myship.7-11.com.tw/%'
+);
 
 create table if not exists public.admins (
   email text primary key,

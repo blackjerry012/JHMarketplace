@@ -3,17 +3,22 @@
 import type { User } from "@supabase/supabase-js";
 import { categories, conditionOptions } from "@/lib/categories";
 import { supabase } from "@/lib/supabase";
+import type { Listing } from "@/lib/types";
 
 const maxImageSizeMb = 3;
 const maxImageSizeBytes = maxImageSizeMb * 1024 * 1024;
 const listingInviteCode = process.env.NEXT_PUBLIC_LISTING_INVITE_CODE;
 
 type ListingFormProps = {
+  editingListing?: Listing | null;
   user: User | null;
-  onCreated: () => void;
+  onCancelEdit?: () => void;
+  onSaved: () => void;
 };
 
-export function ListingForm({ user, onCreated }: ListingFormProps) {
+export function ListingForm({ editingListing, user, onCancelEdit, onSaved }: ListingFormProps) {
+  const isEditing = Boolean(editingListing);
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -28,13 +33,14 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
     const title = String(formData.get("title") || "").trim();
     const description = String(formData.get("description") || "").trim();
     const inviteCode = String(formData.get("invite_code") || "").trim();
+    const checkoutUrl = String(formData.get("checkout_url") || "").trim();
     const conditionLabel =
       conditionOptions.find((option) => Number(option.value) === conditionScore)?.label ||
       "未標示";
     const imageFile = formData.get("image_file");
     let imageUrl = String(formData.get("image_url") || "").trim();
 
-    if (listingInviteCode && inviteCode !== listingInviteCode) {
+    if (!isEditing && listingInviteCode && inviteCode !== listingInviteCode) {
       window.alert("邀請碼不正確，請向群組管理員確認。");
       return;
     }
@@ -46,6 +52,11 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
 
     if (description.length < 5 || description.length > 2000) {
       window.alert("詳細簡介需要 5 到 2000 個字，請多補一點商品狀況。");
+      return;
+    }
+
+    if (checkoutUrl && !isAllowedCheckoutUrl(checkoutUrl)) {
+      window.alert("下單連結目前只允許賣貨便網址：https://myship.7-11.com.tw/...");
       return;
     }
 
@@ -76,8 +87,7 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
       imageUrl = publicUrl.data.publicUrl;
     }
 
-    const { error } = await supabase.from("listings").insert({
-      user_id: user.id,
+    const payload = {
       title,
       category: formData.get("category"),
       price: Number(formData.get("price")),
@@ -85,9 +95,18 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
       condition_label: conditionLabel,
       description,
       discord_id: String(formData.get("discord_id") || "").trim() || null,
-      checkout_url: String(formData.get("checkout_url") || "").trim() || null,
-      image_url: imageUrl || null
-    });
+      checkout_url: checkoutUrl || null,
+      image_url: imageUrl || editingListing?.image_url || null
+    };
+
+    const request = isEditing
+      ? supabase.from("listings").update(payload).eq("id", editingListing!.id)
+      : supabase.from("listings").insert({
+          ...payload,
+          user_id: user.id
+        });
+
+    const { error } = await request;
 
     if (error) {
       window.alert(error.message);
@@ -95,29 +114,43 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
     }
 
     form.reset();
-    onCreated();
+    onSaved();
   }
 
   return (
-    <form className="listing-form" onSubmit={handleSubmit}>
-      <label>
-        <span>刊登邀請碼</span>
-        <input
-          name="invite_code"
-          required={Boolean(listingInviteCode)}
-          placeholder="向 DC 群管理員索取"
-        />
-      </label>
+    <form className="listing-form" key={editingListing?.id || "new-listing"} onSubmit={handleSubmit}>
+      {isEditing ? (
+        <div className="form-notice">
+          <strong>正在編輯刊登</strong>
+          <span>修改錯字、價格、說明或照片後按下「儲存修改」。</span>
+        </div>
+      ) : (
+        <label>
+          <span>刊登邀請碼</span>
+          <input
+            name="invite_code"
+            required={Boolean(listingInviteCode)}
+            placeholder="向 DC 群管理員索取"
+          />
+        </label>
+      )}
 
       <label>
         <span>商品名稱</span>
-        <input name="title" required minLength={2} maxLength={120} placeholder="例如：小鱷魚70 深綠色套件" />
+        <input
+          name="title"
+          required
+          minLength={2}
+          maxLength={120}
+          placeholder="例如：小鱷魚70 深綠色套件"
+          defaultValue={editingListing?.title || ""}
+        />
       </label>
 
       <div className="form-row">
         <label>
           <span>分類</span>
-          <select name="category" required>
+          <select name="category" required defaultValue={editingListing?.category || "keyboard"}>
             {categories.map((category) => (
               <option key={category.value} value={category.value}>
                 {category.label}
@@ -128,14 +161,21 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
 
         <label>
           <span>價格 NT$</span>
-          <input name="price" type="number" min="0" required placeholder="6800" />
+          <input
+            name="price"
+            type="number"
+            min="0"
+            required
+            placeholder="6800"
+            defaultValue={editingListing?.price ?? ""}
+          />
         </label>
       </div>
 
       <div className="form-row">
         <label>
           <span>使用狀況</span>
-          <select name="condition_score" required>
+          <select name="condition_score" required defaultValue={String(editingListing?.condition_score || 95)}>
             {conditionOptions.map((condition) => (
               <option key={condition.value} value={condition.value}>
                 {condition.label}
@@ -146,18 +186,28 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
 
         <label>
           <span>Discord ID</span>
-          <input name="discord_id" placeholder="blackjerry012" />
+          <input name="discord_id" placeholder="blackjerry012" defaultValue={editingListing?.discord_id || ""} />
         </label>
       </div>
 
       <label>
-        <span>賣貨便 / 下單連結</span>
-        <input name="checkout_url" type="url" placeholder="https://myship.7-11.com.tw/..." />
+        <span>賣貨便下單連結</span>
+        <input
+          name="checkout_url"
+          type="url"
+          placeholder="https://myship.7-11.com.tw/general/detail/GM2309133835608"
+          defaultValue={editingListing?.checkout_url || ""}
+        />
       </label>
 
       <label>
         <span>照片網址</span>
-        <input name="image_url" type="url" placeholder="也可以直接貼圖片網址" />
+        <input
+          name="image_url"
+          type="url"
+          placeholder="可貼圖片網址，或使用下方上傳"
+          defaultValue={editingListing?.image_url || ""}
+        />
       </label>
 
       <label>
@@ -174,12 +224,29 @@ export function ListingForm({ user, onCreated }: ListingFormProps) {
           maxLength={2000}
           rows={5}
           placeholder="說明配列、外觀瑕疵、含哪些東西、是否已調校、聲音或手感特色..."
+          defaultValue={editingListing?.description || ""}
         />
       </label>
 
-      <button className="submit-button" type="submit">
-        {user ? "送出刊登" : "登入後才能刊登"}
-      </button>
+      <div className="form-actions">
+        <button className="submit-button" type="submit">
+          {isEditing ? "儲存修改" : user ? "送出刊登" : "登入後才能刊登"}
+        </button>
+        {isEditing ? (
+          <button className="ghost-button" type="button" onClick={onCancelEdit}>
+            取消編輯
+          </button>
+        ) : null}
+      </div>
     </form>
   );
+}
+
+function isAllowedCheckoutUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "myship.7-11.com.tw";
+  } catch {
+    return false;
+  }
 }
