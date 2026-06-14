@@ -14,6 +14,8 @@ const currency = new Intl.NumberFormat("zh-TW", {
   maximumFractionDigits: 0
 });
 
+const listingDurationDays = 60;
+
 type Filter = "all" | ListingCategory;
 type SortMode = "newest" | "priceLow" | "priceHigh" | "condition";
 
@@ -110,7 +112,7 @@ export function MarketplaceApp() {
     await loadListings();
   }
 
-  async function updateListingStatus(listing: Listing, status: "active" | "sold" | "hidden") {
+  async function updateListingStatus(listing: Listing, status: "active" | "sold" | "hidden" | "expired") {
     if (!supabase || !user) return;
 
     const canMarkSold = listing.user_id === user.id || isAdmin;
@@ -129,7 +131,15 @@ export function MarketplaceApp() {
     const confirmed = window.confirm(`確定要將「${listing.title}」${actionText}嗎？`);
     if (!confirmed) return;
 
-    const { error } = await supabase.from("listings").update({ status }).eq("id", listing.id);
+    const patch =
+      status === "active"
+        ? {
+            status,
+            expires_at: new Date(Date.now() + listingDurationDays * 24 * 60 * 60 * 1000).toISOString()
+          }
+        : { status };
+
+    const { error } = await supabase.from("listings").update(patch).eq("id", listing.id);
     if (error) {
       setNotice(error.message);
       return;
@@ -137,6 +147,16 @@ export function MarketplaceApp() {
 
     setSelectedListing(null);
     await loadListings();
+  }
+
+  function openExternalLink(url: string) {
+    const confirmed = window.confirm(
+      "即將前往外部網站，請確認網址與交易安全。JH Marketplace 不會代收款，也不保證外部交易內容。"
+    );
+
+    if (confirmed) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
   }
 
   const visibleListings = useMemo(() => {
@@ -292,8 +312,10 @@ export function MarketplaceApp() {
                 )}
                 <span className="product-badge">{categoryLabels[listing.category]}</span>
                 <span className="condition-badge">{listing.condition_label}</span>
-                {isAdmin && listing.status !== "active" ? (
-                  <span className={`status-badge status-${listing.status}`}>{statusLabel(listing.status)}</span>
+                {isAdmin && effectiveStatus(listing) !== "active" ? (
+                  <span className={`status-badge status-${effectiveStatus(listing)}`}>
+                    {statusLabel(effectiveStatus(listing))}
+                  </span>
                 ) : null}
               </div>
               <div className="product-info">
@@ -388,13 +410,17 @@ export function MarketplaceApp() {
                   <dd>{formatDate(selectedListing.created_at)}</dd>
                 </div>
                 <div>
+                  <dt>刊登期限</dt>
+                  <dd>{formatDate(selectedListing.expires_at)}，共 {listingDurationDays} 天</dd>
+                </div>
+                <div>
                   <dt>使用狀況</dt>
                   <dd>{selectedListing.condition_label}</dd>
                 </div>
                 {isAdmin ? (
                   <div>
                     <dt>刊登狀態</dt>
-                    <dd>{statusLabel(selectedListing.status)}</dd>
+                    <dd>{statusLabel(effectiveStatus(selectedListing))}</dd>
                   </div>
                 ) : null}
                 <div>
@@ -404,9 +430,9 @@ export function MarketplaceApp() {
               </dl>
               <div className="dialog-actions">
                 {selectedListing.checkout_url ? (
-                  <a className="primary-link" target="_blank" rel="noopener noreferrer" href={selectedListing.checkout_url}>
+                  <button className="primary-link" type="button" onClick={() => openExternalLink(selectedListing.checkout_url!)}>
                     前往賣貨便
-                  </a>
+                  </button>
                 ) : null}
                 <a className="secondary-link" href="https://discord.com/" target="_blank" rel="noopener noreferrer">
                   去 Discord 聯絡
@@ -421,7 +447,7 @@ export function MarketplaceApp() {
                     管理員隱藏
                   </button>
                 ) : null}
-                {isAdmin && selectedListing.status !== "active" ? (
+                {isAdmin && effectiveStatus(selectedListing) !== "active" ? (
                   <button className="secondary-link" type="button" onClick={() => updateListingStatus(selectedListing, "active")}>
                     重新上架
                   </button>
@@ -451,6 +477,15 @@ function statusLabel(status: Listing["status"]) {
   return {
     active: "刊登中",
     sold: "已售出",
-    hidden: "已隱藏"
+    hidden: "已隱藏",
+    expired: "已過期"
   }[status];
+}
+
+function effectiveStatus(listing: Listing): Listing["status"] {
+  if (listing.status === "active" && Date.parse(listing.expires_at) <= Date.now()) {
+    return "expired";
+  }
+
+  return listing.status;
 }

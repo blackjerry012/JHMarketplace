@@ -12,7 +12,8 @@ create table if not exists public.listings (
   discord_id text,
   checkout_url text,
   image_url text,
-  status text not null default 'active' check (status in ('active', 'sold', 'hidden')),
+  status text not null default 'active' check (status in ('active', 'sold', 'hidden', 'expired')),
+  expires_at timestamptz not null default (now() + interval '60 days'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -65,7 +66,7 @@ drop policy if exists "Anyone can read active listings" on public.listings;
 create policy "Anyone can read active listings"
 on public.listings
 for select
-using (status = 'active');
+using (status = 'active' and expires_at > now());
 
 drop policy if exists "Admins can read any listing" on public.listings;
 create policy "Admins can read any listing"

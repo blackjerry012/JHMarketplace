@@ -12,9 +12,10 @@ export type Listing = {
   discord_id: string | null;
   checkout_url: string | null;
   image_url: string | null;
-  status: "active" | "sold" | "hidden";
+  status: "active" | "sold" | "hidden" | "expired";
   created_at: string;
   updated_at: string;
+  expires_at: string;
 };
 
 export type Admin = {

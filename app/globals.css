@@ -454,7 +454,8 @@ textarea {
   background: var(--danger);
 }
 
-.status-sold {
+.status-sold,
+.status-expired {
   background: #5b5b5b;
 }
 
