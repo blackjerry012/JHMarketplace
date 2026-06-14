@@ -15,6 +15,7 @@ const currency = new Intl.NumberFormat("zh-TW", {
 });
 
 const listingDurationDays = 60;
+const listingsPerPage = 8;
 
 type Filter = "all" | ListingCategory;
 type SortMode = "newest" | "priceLow" | "priceHigh" | "condition";
@@ -28,6 +29,7 @@ export function MarketplaceApp() {
   const [filter, setFilter] = useState<Filter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [notice, setNotice] = useState("");
 
@@ -193,6 +195,22 @@ export function MarketplaceApp() {
     return filtered;
   }, [filter, listings, query, sortMode]);
 
+  const totalPages = Math.max(1, Math.ceil(visibleListings.length / listingsPerPage));
+  const paginatedListings = visibleListings.slice(
+    (currentPage - 1) * listingsPerPage,
+    currentPage * listingsPerPage
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, query, sortMode]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   return (
     <div className="site-shell">
       <div className="top-strip">KEYBOARDS / KEYCAPS / STABILIZERS / PARTS / USED MARKET</div>
@@ -272,7 +290,7 @@ export function MarketplaceApp() {
           <button
             className={`category-pill ${filter === "all" ? "is-active" : ""}`}
             type="button"
-            onClick={() => setFilter("all")}
+              onClick={() => setFilter("all")}
           >
             全部
           </button>
@@ -316,7 +334,7 @@ export function MarketplaceApp() {
         </section>
 
         <section className="product-grid" aria-live="polite">
-          {visibleListings.map((listing) => (
+          {paginatedListings.map((listing) => (
             <article className="product-card" data-kind={listing.category} key={listing.id}>
               <div className="product-media">
                 {listing.image_url ? (
@@ -349,6 +367,30 @@ export function MarketplaceApp() {
             </article>
           ))}
         </section>
+
+        {visibleListings.length > listingsPerPage ? (
+          <nav className="pagination" aria-label="商品分頁">
+            <button
+              className="page-button"
+              type="button"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+            >
+              上一頁
+            </button>
+            <span>
+              第 {currentPage} / {totalPages} 頁，共 {visibleListings.length} 筆
+            </span>
+            <button
+              className="page-button"
+              type="button"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+            >
+              下一頁
+            </button>
+          </nav>
+        ) : null}
 
         {!loading && visibleListings.length === 0 ? (
           <div className="empty-state">
