@@ -105,6 +105,27 @@ export function MarketplaceApp() {
     await loadListings();
   }
 
+  async function updateListingStatus(listing: Listing, status: "sold" | "hidden") {
+    if (!supabase || !user) return;
+
+    const canMarkSold = listing.user_id === user.id || isAdmin;
+    const canHide = isAdmin;
+    if ((status === "sold" && !canMarkSold) || (status === "hidden" && !canHide)) return;
+
+    const actionText = status === "sold" ? "標記為已售出" : "管理員隱藏";
+    const confirmed = window.confirm(`確定要將「${listing.title}」${actionText}嗎？`);
+    if (!confirmed) return;
+
+    const { error } = await supabase.from("listings").update({ status }).eq("id", listing.id);
+    if (error) {
+      setNotice(error.message);
+      return;
+    }
+
+    setSelectedListing(null);
+    await loadListings();
+  }
+
   const visibleListings = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     const filtered = listings.filter((listing) => {
@@ -289,8 +310,13 @@ export function MarketplaceApp() {
             <p className="eyebrow">POST A LISTING</p>
             <h2>刊登你的鍵盤周邊</h2>
             <p>
-              登入後可以上架商品。資料會寫進 Supabase，圖片會上傳到 Storage，
-              之後也可以擴充成賣家中心、標記售出、檢舉與審核。
+              登入只用來確認刊登者身分，不會取得你的 Email 密碼。系統使用 Supabase
+              magic link 寄送一次性登入連結，商品資料會寫進資料庫，圖片會上傳到公開商品圖庫。
+              你可以刪除或標記自己的刊登，管理員會協助隱藏不適合的內容。
+            </p>
+            <p className="trust-note">
+              安全提醒：請不要在商品簡介留下密碼、住址、電話或私密資料；交易請透過 Discord
+              或賣貨便自行確認。
             </p>
             <AuthPanel user={user} onAuthChange={loadListings} />
           </div>
@@ -363,6 +389,16 @@ export function MarketplaceApp() {
                 <a className="secondary-link" href="https://discord.com/" target="_blank" rel="noopener noreferrer">
                   去 Discord 聯絡
                 </a>
+                {user?.id === selectedListing.user_id || isAdmin ? (
+                  <button className="secondary-link" type="button" onClick={() => updateListingStatus(selectedListing, "sold")}>
+                    標記已售出
+                  </button>
+                ) : null}
+                {isAdmin ? (
+                  <button className="secondary-link" type="button" onClick={() => updateListingStatus(selectedListing, "hidden")}>
+                    管理員隱藏
+                  </button>
+                ) : null}
                 {user?.id === selectedListing.user_id || isAdmin ? (
                   <button className="danger-button" type="button" onClick={() => deleteListing(selectedListing)}>
                     {user?.id === selectedListing.user_id ? "刪除我的刊登" : "管理員刪除"}

@@ -531,6 +531,15 @@ textarea {
   line-height: 1.9;
 }
 
+.sell-copy .trust-note {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(200, 255, 61, 0.42);
+  background: rgba(200, 255, 61, 0.08);
+  color: #f2f2e8;
+  font-size: 14px;
+}
+
 .auth-card,
 .listing-form {
   display: grid;
