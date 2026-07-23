@@ -139,7 +139,6 @@ export function ListingForm({ editingListing, isAdmin, user, onCancelEdit, onSav
           >
             <option value="community">二手專區</option>
             <option value="jh">JH 商品專區</option>
-            <option value="xianyu">閒魚好料專區</option>
           </select>
         </label>
       ) : null}
@@ -216,7 +215,7 @@ export function ListingForm({ editingListing, isAdmin, user, onCancelEdit, onSav
             <input
               name="source_url"
               type="url"
-              placeholder="JH 商品頁或閒魚商品網址"
+              placeholder="JH 商品頁網址"
               defaultValue={editingListing?.source_url || ""}
             />
           </label>
@@ -226,7 +225,7 @@ export function ListingForm({ editingListing, isAdmin, user, onCancelEdit, onSav
               name="featured_reason"
               rows={3}
               maxLength={500}
-              placeholder="例如：價格低於近期二手成交價約 20%、稀有配色或熱門套件"
+              placeholder="例如：現貨狀態、團購資訊、配色特色或商品亮點"
               defaultValue={editingListing?.featured_reason || ""}
             />
           </label>
