@@ -16,7 +16,7 @@ create table if not exists public.listings (
   ),
   image_url text,
   market_section text not null default 'community'
-    check (market_section in ('community', 'jh', 'xianyu')),
+    check (market_section in ('community', 'jh')),
   source_url text,
   featured_reason text check (featured_reason is null or char_length(featured_reason) <= 500),
   status text not null default 'active' check (status in ('active', 'sold', 'hidden', 'expired')),
@@ -39,7 +39,7 @@ drop constraint if exists listings_market_section_check;
 
 alter table public.listings
 add constraint listings_market_section_check
-check (market_section in ('community', 'jh', 'xianyu'));
+check (market_section in ('community', 'jh'));
 
 alter table public.listings
 drop constraint if exists listings_featured_reason_check;
