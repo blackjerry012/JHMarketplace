@@ -15,11 +15,38 @@ create table if not exists public.listings (
     or lower(checkout_url) like 'https://myship.7-11.com.tw/%'
   ),
   image_url text,
+  market_section text not null default 'community'
+    check (market_section in ('community', 'jh', 'xianyu')),
+  source_url text,
+  featured_reason text check (featured_reason is null or char_length(featured_reason) <= 500),
   status text not null default 'active' check (status in ('active', 'sold', 'hidden', 'expired')),
   expires_at timestamptz not null default (now() + interval '60 days'),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.listings
+add column if not exists market_section text not null default 'community';
+
+alter table public.listings
+add column if not exists source_url text;
+
+alter table public.listings
+add column if not exists featured_reason text;
+
+alter table public.listings
+drop constraint if exists listings_market_section_check;
+
+alter table public.listings
+add constraint listings_market_section_check
+check (market_section in ('community', 'jh', 'xianyu'));
+
+alter table public.listings
+drop constraint if exists listings_featured_reason_check;
+
+alter table public.listings
+add constraint listings_featured_reason_check
+check (featured_reason is null or char_length(featured_reason) <= 500);
 
 alter table public.listings
 drop constraint if exists listings_category_check;
@@ -54,6 +81,9 @@ create index if not exists listings_status_created_at_idx
 
 create index if not exists listings_category_idx
   on public.listings (category);
+
+create index if not exists listings_market_section_idx
+  on public.listings (market_section, status, created_at desc);
 
 grant usage on schema public to anon, authenticated;
 grant select on public.listings to anon, authenticated;
@@ -111,7 +141,10 @@ create policy "Users can insert their own listings"
 on public.listings
 for insert
 to authenticated
-with check (auth.uid() = user_id);
+with check (
+  auth.uid() = user_id
+  and market_section = 'community'
+);
 
 drop policy if exists "Users can update their own listings" on public.listings;
 create policy "Users can update their own listings"
@@ -119,7 +152,10 @@ on public.listings
 for update
 to authenticated
 using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+with check (
+  auth.uid() = user_id
+  and market_section = 'community'
+);
 
 drop policy if exists "Admins can update any listing" on public.listings;
 create policy "Admins can update any listing"
