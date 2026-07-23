@@ -246,8 +246,8 @@ export function MarketplaceApp() {
             <p className="eyebrow">USED KEYBOARD MARKET</p>
             <h1>JH MARKETPLACE</h1>
             <p>
-              集合 Discord 社群二手刊登、JH 自有商品與精選閒魚好料，
-              讓鍵盤玩家更快找到值得看的商品。
+              集合 Discord 社群二手刊登與 JH 自有商品，
+              讓鍵盤玩家更快找到值得看的鍵盤周邊。
             </p>
             <div className="hero-actions">
               <a className="primary-link" href="#market">
@@ -292,8 +292,7 @@ export function MarketplaceApp() {
         <section className="category-band section-band" aria-label="商品專區">
           {[
             { value: "community", label: "二手專區" },
-            { value: "jh", label: "JH 商品專區" },
-            { value: "xianyu", label: "閒魚好料專區" }
+            { value: "jh", label: "JH 商品專區" }
           ].map((section) => (
             <button
               className={`category-pill ${sectionFilter === section.value ? "is-active" : ""}`}
@@ -561,8 +560,7 @@ export function MarketplaceApp() {
 function sectionTitle(section: MarketSection) {
   return {
     community: "社群二手刊登",
-    jh: "JH 商品專區",
-    xianyu: "閒魚好料專區"
+    jh: "JH 商品專區"
   }[section];
 }
 
