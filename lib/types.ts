@@ -1,6 +1,6 @@
 import type { ListingCategory } from "@/lib/categories";
 
-export type MarketSection = "community" | "jh" | "xianyu";
+export type MarketSection = "community" | "jh";
 
 export type Listing = {
   id: string;
