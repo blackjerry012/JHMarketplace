@@ -7,16 +7,15 @@ import type { Listing } from "@/lib/types";
 
 const maxImageSizeMb = 3;
 const maxImageSizeBytes = maxImageSizeMb * 1024 * 1024;
-const listingInviteCode = process.env.NEXT_PUBLIC_LISTING_INVITE_CODE;
-
 type ListingFormProps = {
   editingListing?: Listing | null;
+  isAdmin: boolean;
   user: User | null;
   onCancelEdit?: () => void;
   onSaved: () => void;
 };
 
-export function ListingForm({ editingListing, user, onCancelEdit, onSaved }: ListingFormProps) {
+export function ListingForm({ editingListing, isAdmin, user, onCancelEdit, onSaved }: ListingFormProps) {
   const isEditing = Boolean(editingListing);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -32,18 +31,16 @@ export function ListingForm({ editingListing, user, onCancelEdit, onSaved }: Lis
     const conditionScore = Number(formData.get("condition_score"));
     const title = String(formData.get("title") || "").trim();
     const description = String(formData.get("description") || "").trim();
-    const inviteCode = String(formData.get("invite_code") || "").trim();
     const checkoutUrl = String(formData.get("checkout_url") || "").trim();
+    const sourceUrl = String(formData.get("source_url") || "").trim();
+    const marketSection = isAdmin
+      ? String(formData.get("market_section") || "community")
+      : "community";
     const conditionLabel =
       conditionOptions.find((option) => Number(option.value) === conditionScore)?.label ||
       "未標示";
     const imageFile = formData.get("image_file");
     let imageUrl = String(formData.get("image_url") || "").trim();
-
-    if (!isEditing && listingInviteCode && inviteCode !== listingInviteCode) {
-      window.alert("邀請碼不正確，請向群組管理員確認。");
-      return;
-    }
 
     if (title.length < 2 || title.length > 120) {
       window.alert("商品名稱需要 2 到 120 個字。");
@@ -96,7 +93,14 @@ export function ListingForm({ editingListing, user, onCancelEdit, onSaved }: Lis
       description,
       discord_id: String(formData.get("discord_id") || "").trim() || null,
       checkout_url: checkoutUrl || null,
-      image_url: imageUrl || editingListing?.image_url || null
+      image_url: imageUrl || editingListing?.image_url || null,
+      ...(isAdmin
+        ? {
+            market_section: marketSection,
+            source_url: sourceUrl || null,
+            featured_reason: String(formData.get("featured_reason") || "").trim() || null
+          }
+        : {})
     };
 
     const request = isEditing
@@ -124,16 +128,20 @@ export function ListingForm({ editingListing, user, onCancelEdit, onSaved }: Lis
           <strong>正在編輯刊登</strong>
           <span>修改錯字、價格、說明或照片後按下「儲存修改」。</span>
         </div>
-      ) : (
+      ) : null}
+
+      {isAdmin ? (
         <label>
-          <span>刊登邀請碼</span>
-          <input
-            name="invite_code"
-            required={Boolean(listingInviteCode)}
-            placeholder="向 DC 群管理員索取"
-          />
+          <span>刊登專區</span>
+          <select
+            name="market_section"
+            defaultValue={editingListing?.market_section || "community"}
+          >
+            <option value="community">二手專區</option>
+            <option value="jh">JH 商品專區</option>
+          </select>
         </label>
-      )}
+      ) : null}
 
       <label>
         <span>商品名稱</span>
@@ -199,6 +207,30 @@ export function ListingForm({ editingListing, user, onCancelEdit, onSaved }: Lis
           defaultValue={editingListing?.checkout_url || ""}
         />
       </label>
+
+      {isAdmin ? (
+        <>
+          <label>
+            <span>商品原始連結</span>
+            <input
+              name="source_url"
+              type="url"
+              placeholder="JH 商品頁網址"
+              defaultValue={editingListing?.source_url || ""}
+            />
+          </label>
+          <label>
+            <span>推薦理由</span>
+            <textarea
+              name="featured_reason"
+              rows={3}
+              maxLength={500}
+              placeholder="例如：現貨狀態、團購資訊、配色特色或商品亮點"
+              defaultValue={editingListing?.featured_reason || ""}
+            />
+          </label>
+        </>
+      ) : null}
 
       <label>
         <span>照片網址</span>

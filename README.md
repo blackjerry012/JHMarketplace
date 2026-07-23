@@ -28,7 +28,6 @@ Keyboard-focused second-hand marketplace for a Discord community.
    ```env
    NEXT_PUBLIC_SUPABASE_URL=
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
-   NEXT_PUBLIC_LISTING_INVITE_CODE=
    ```
 
 4. In Supabase SQL Editor, run:
@@ -59,4 +58,3 @@ Deploy on Vercel and add the same environment variables:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
-- `NEXT_PUBLIC_LISTING_INVITE_CODE`

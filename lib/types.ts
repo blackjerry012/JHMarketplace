@@ -1,5 +1,7 @@
 import type { ListingCategory } from "@/lib/categories";
 
+export type MarketSection = "community" | "jh";
+
 export type Listing = {
   id: string;
   user_id: string;
@@ -12,6 +14,9 @@ export type Listing = {
   discord_id: string | null;
   checkout_url: string | null;
   image_url: string | null;
+  market_section?: MarketSection;
+  source_url?: string | null;
+  featured_reason?: string | null;
   status: "active" | "sold" | "hidden" | "expired";
   created_at: string;
   updated_at: string;

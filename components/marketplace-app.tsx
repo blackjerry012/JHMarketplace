@@ -6,7 +6,7 @@ import { AuthPanel } from "@/components/auth-panel";
 import { ListingForm } from "@/components/listing-form";
 import { categories, categoryLabels, type ListingCategory } from "@/lib/categories";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
-import type { Listing } from "@/lib/types";
+import type { Listing, MarketSection } from "@/lib/types";
 
 const currency = new Intl.NumberFormat("zh-TW", {
   style: "currency",
@@ -18,6 +18,7 @@ const listingDurationDays = 60;
 const listingsPerPage = 8;
 
 type Filter = "all" | ListingCategory;
+type SectionFilter = MarketSection;
 type SortMode = "newest" | "priceLow" | "priceHigh" | "condition";
 
 export function MarketplaceApp() {
@@ -27,6 +28,7 @@ export function MarketplaceApp() {
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
+  const [sectionFilter, setSectionFilter] = useState<SectionFilter>("community");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -179,8 +181,9 @@ export function MarketplaceApp() {
     const keyword = query.trim().toLowerCase();
     const filtered = listings.filter((listing) => {
       const matchesCategory = filter === "all" || listing.category === filter;
+      const matchesSection = (listing.market_section || "community") === sectionFilter;
       const haystack = `${listing.title} ${listing.description} ${listing.discord_id || ""}`.toLowerCase();
-      return matchesCategory && (!keyword || haystack.includes(keyword));
+      return matchesSection && matchesCategory && (!keyword || haystack.includes(keyword));
     });
 
     if (sortMode === "priceLow") filtered.sort((a, b) => a.price - b.price);
@@ -193,7 +196,7 @@ export function MarketplaceApp() {
     }
 
     return filtered;
-  }, [filter, listings, query, sortMode]);
+  }, [filter, listings, query, sectionFilter, sortMode]);
 
   const totalPages = Math.max(1, Math.ceil(visibleListings.length / listingsPerPage));
   const paginatedListings = visibleListings.slice(
@@ -203,7 +206,7 @@ export function MarketplaceApp() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter, query, sortMode]);
+  }, [filter, query, sectionFilter, sortMode]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -225,7 +228,7 @@ export function MarketplaceApp() {
         </a>
 
         <nav className="main-nav" aria-label="Primary navigation">
-          <a href="#market">MARKET</a>
+          <a href="#market">專區</a>
           <a href="#sell">SELL</a>
           <a href="#guide">GUIDE</a>
         </nav>
@@ -243,8 +246,8 @@ export function MarketplaceApp() {
             <p className="eyebrow">USED KEYBOARD MARKET</p>
             <h1>JH MARKETPLACE</h1>
             <p>
-              給 Discord 社群朋友上架二手鍵盤、鍵帽、衛星軸與其他周邊。留下商品狀況、
-              詳細照片、DC ID 或賣貨便連結，買賣雙方自己聯絡。
+              集合 Discord 社群二手刊登與 JH 自有商品，
+              讓鍵盤玩家更快找到值得看的鍵盤周邊。
             </p>
             <div className="hero-actions">
               <a className="primary-link" href="#market">
@@ -286,6 +289,22 @@ export function MarketplaceApp() {
           </section>
         ) : null}
 
+        <section className="category-band section-band" aria-label="商品專區">
+          {[
+            { value: "community", label: "二手專區" },
+            { value: "jh", label: "JH 商品專區" }
+          ].map((section) => (
+            <button
+              className={`category-pill ${sectionFilter === section.value ? "is-active" : ""}`}
+              key={section.value}
+              type="button"
+              onClick={() => setSectionFilter(section.value as SectionFilter)}
+            >
+              {section.label}
+            </button>
+          ))}
+        </section>
+
         <section className="category-band" aria-label="商品分類">
           <button
             className={`category-pill ${filter === "all" ? "is-active" : ""}`}
@@ -309,7 +328,7 @@ export function MarketplaceApp() {
         <section className="collection-toolbar" id="market">
           <div>
             <p className="eyebrow">MARKET BOARD</p>
-            <h2>社群二手刊登</h2>
+            <h2>{sectionTitle(sectionFilter)}</h2>
           </div>
           <div className="toolbar-controls">
             <label>
@@ -355,6 +374,9 @@ export function MarketplaceApp() {
                   {categoryLabels[listing.category]} / {formatDate(listing.created_at)}
                 </span>
                 <h3 className="product-title">{listing.title}</h3>
+                {listing.featured_reason ? (
+                  <p className="featured-reason">推薦理由：{listing.featured_reason}</p>
+                ) : null}
                 <p className="product-desc">{listing.description}</p>
                 <div className="seller-row">DC: {listing.discord_id || "未填"}</div>
                 <div className="product-foot">
@@ -417,6 +439,7 @@ export function MarketplaceApp() {
 
           <ListingForm
             editingListing={editingListing}
+            isAdmin={isAdmin}
             user={user}
             onCancelEdit={() => setEditingListing(null)}
             onSaved={handleListingSaved}
@@ -435,7 +458,7 @@ export function MarketplaceApp() {
             </article>
             <article>
               <strong>2. 登入後刊登</strong>
-              <p>輸入 Email 收登入連結，再填商品照片、價格、使用狀況、DC ID、賣貨便連結和刊登邀請碼。</p>
+              <p>輸入 Email 收登入連結，再填商品照片、價格、使用狀況、DC ID 與賣貨便連結即可刊登。</p>
             </article>
             <article>
               <strong>3. 自行聯絡交易</strong>
@@ -495,6 +518,11 @@ export function MarketplaceApp() {
                     前往賣貨便
                   </button>
                 ) : null}
+                {selectedListing.source_url ? (
+                  <button className="primary-link" type="button" onClick={() => openExternalLink(selectedListing.source_url!)}>
+                    前往原始商品頁
+                  </button>
+                ) : null}
                 {user?.id === selectedListing.user_id || isAdmin ? (
                   <button className="secondary-link" type="button" onClick={() => startEditing(selectedListing)}>
                     編輯刊登
@@ -527,6 +555,13 @@ export function MarketplaceApp() {
       ) : null}
     </div>
   );
+}
+
+function sectionTitle(section: MarketSection) {
+  return {
+    community: "社群二手刊登",
+    jh: "JH 商品專區"
+  }[section];
 }
 
 function formatDate(value: string) {
