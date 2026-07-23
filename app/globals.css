@@ -300,6 +300,30 @@ h2 {
   background: var(--paper);
 }
 
+.section-band {
+  margin-top: 34px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+}
+
+.section-band .category-pill {
+  flex: 1;
+  min-width: 160px;
+  text-align: center;
+}
+
+.featured-reason {
+  margin: 10px 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: #fff7ed;
+  color: #7c3f12;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
 .category-pill {
   min-width: max-content;
   padding: 12px 18px;
